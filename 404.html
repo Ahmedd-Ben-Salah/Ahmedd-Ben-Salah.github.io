@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>404 — Route not found · Ahmed Ben Salah</title>
+  <meta name="robots" content="noindex" />
+  <link rel="icon" type="image/png" href="/favcon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Instrument+Serif:ital@1&family=Hanken+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
+  <style>
+    .e404 { min-height: 100vh; min-height: 100svh; display: grid; place-items: center; text-align: center; padding: var(--gutter); }
+    .e404-inner { max-width: 680px; width: 100%; }
+    .glitch { font-family: var(--font-display); font-weight: 800; letter-spacing: -.04em; line-height: .9;
+      font-size: clamp(7rem, 28vw, 16rem); position: relative; }
+    .glitch span { display: inline-block; }
+    .glitch em { font-family: var(--font-serif); font-style: italic; font-weight: 400; color: var(--accent); }
+    .glitch::before, .glitch::after { content: "404"; position: absolute; inset: 0; opacity: .55; }
+    .glitch::before { color: var(--accent-2); animation: gl1 2.6s steps(2) infinite; }
+    .glitch::after  { color: var(--accent-3); animation: gl2 3.4s steps(2) infinite; }
+    @keyframes gl1 { 0%,92%,100%{ transform: none; clip-path: inset(0 0 0 0); } 94%{ transform: translate(-4px,2px); } 97%{ transform: translate(3px,-2px); } }
+    @keyframes gl2 { 0%,90%,100%{ transform: none; } 93%{ transform: translate(4px,1px); } 96%{ transform: translate(-3px,-1px); } }
+
+    .e404 .term { border: 1px solid var(--line-2); border-radius: 14px; overflow: hidden; text-align: left;
+      background: linear-gradient(180deg, var(--surface), var(--bg-2)); font-family: var(--font-mono);
+      box-shadow: 0 40px 90px -45px #000; margin: 1.6rem 0 2.2rem; }
+    .e404 .term-bar { display: flex; align-items: center; gap: .5rem; padding: .7rem 1rem; border-bottom: 1px solid var(--line); background: rgba(255,255,255,.02); }
+    .e404 .term-bar .d { width: 11px; height: 11px; border-radius: 50%; }
+    .e404 .term-bar .d:nth-child(1){background:#ff5f57}.e404 .term-bar .d:nth-child(2){background:#febc2e}.e404 .term-bar .d:nth-child(3){background:#28c840}
+    .e404 .term-bar .t { margin-left: auto; font-size: .72rem; color: var(--faint); }
+    .e404 .term-body { padding: 1.1rem 1.2rem; font-size: .85rem; line-height: 1.9; }
+    .e404 .term-body .p { color: var(--accent); }
+    .e404 .term-body .o { color: var(--muted); }
+    .e404 .term-body .err { color: var(--danger); }
+    .e404 .term-body .cur::after { content: "▋"; color: var(--accent); animation: blink 1s steps(1) infinite; }
+    @keyframes blink { 50% { opacity: 0; } }
+    .e404 h1 { font-family: var(--font-display); font-size: clamp(1.4rem, 4vw, 2rem); font-weight: 600; letter-spacing: -.02em; }
+    .e404 p.lead { color: var(--muted); margin-top: .7rem; }
+    .e404 .actions { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; margin-top: 2rem; }
+  </style>
+</head>
+<body>
+  <div class="bg-glow"></div>
+  <div class="aurora" aria-hidden="true"><span class="a1"></span><span class="a2"></span><span class="a3"></span></div>
+  <div class="bg-grid"></div>
+  <div class="noise"></div>
+
+  <main class="e404">
+    <div class="e404-inner">
+      <div class="glitch"><span>4<em>0</em>4</span></div>
+
+      <div class="term">
+        <div class="term-bar"><span class="d"></span><span class="d"></span><span class="d"></span><span class="t">visitor@ahmed — /bin/portfolio</span></div>
+        <div class="term-body">
+          <div><span class="p">visitor@ahmed</span>:~$ cd <span id="route">/this-page</span></div>
+          <div class="err" id="errline"></div>
+          <div class="o cur" id="hintline"></div>
+        </div>
+      </div>
+
+      <h1>This route doesn't exist.</h1>
+      <p class="lead">The page you're looking for was moved, removed, or never compiled.</p>
+
+      <div class="actions">
+        <a href="/" class="btn btn-primary" data-cursor>
+          ← Return home
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><path d="M3 12l9-9 9 9M5 10v10h14V10"/></svg>
+        </a>
+        <a href="/#work" class="btn btn-ghost" data-cursor>View projects</a>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // show the real bad path + type out the error
+    var path = location.pathname + location.search;
+    if (path && path !== '/') document.getElementById('route').textContent = path;
+    var err = 'bash: cd: ' + path + ': No such file or directory';
+    var hint = "try 'cd /' to go home →";
+    var e = document.getElementById('errline'), h = document.getElementById('hintline');
+    var i = 0;
+    (function type(){ e.textContent = err.slice(0, i); i++; if (i <= err.length) setTimeout(type, 22); else { e.textContent = err; setTimeout(typeHint, 350); } })();
+    var j = 0;
+    function typeHint(){ h.textContent = hint.slice(0, j); j++; if (j <= hint.length) setTimeout(typeHint, 28); }
+  </script>
+</body>
+</html>
