@@ -350,7 +350,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (pl) pl.style.display = 'none';
     if (curtain) curtain.style.display = 'none';
     document.querySelectorAll('[data-anim]').forEach(el => el.style.opacity = 1);
-    document.querySelectorAll('.bar-fill').forEach(b => b.style.width = (b.dataset.w || 0) + '%');
     document.querySelectorAll('[data-count]').forEach(el => el.textContent = el.dataset.count + (el.dataset.suffix || ''));
     const tl = document.querySelector('#tlLine span'); if (tl) tl.style.height = '100%';
     const vp = document.querySelector('.gallery-viewport'); if (vp) vp.style.overflowX = 'auto'; // manual scroll instead of pin
@@ -431,12 +430,6 @@ document.addEventListener('DOMContentLoaded', () => {
         scrollTrigger: { trigger: el, start: 'top 90%' },
         onUpdate: () => el.textContent = Math.round(o.v) + suffix
       });
-    });
-
-    // skill bars
-    gsap.utils.toArray('.bar-fill').forEach(bar => {
-      gsap.to(bar, { width: (bar.dataset.w || 0) + '%', duration: 1.4, ease: 'power3.out',
-        scrollTrigger: { trigger: bar, start: 'top 92%' } });
     });
 
     // timeline progress line

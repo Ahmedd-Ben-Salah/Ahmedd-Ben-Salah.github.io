@@ -307,12 +307,11 @@ header.scrolled { background: rgba(7,8,10,.94); border-bottom-color: var(--line)
 .chip::before { content:""; width: 6px; height: 6px; border-radius: 2px; background: var(--accent); opacity: .55; transition: opacity .3s, transform .3s; }
 .chip:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-4px); background: rgba(200,255,54,.05); }
 .chip:hover::before { opacity: 1; transform: rotate(45deg); }
-.bars { display: grid; gap: 1.4rem; }
-.bar-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: .55rem; }
-.bar-name { font-weight: 600; font-size: 1rem; }
-.bar-val { font-family: var(--font-mono); font-size: .78rem; color: var(--accent); }
-.bar-track { height: 7px; border-radius: 100px; background: var(--surface-2); overflow: hidden; border: 1px solid var(--line); }
-.bar-fill { height: 100%; width: 0; border-radius: 100px; background: linear-gradient(90deg, var(--accent-2), var(--accent)); box-shadow: 0 0 14px var(--glow); }
+.focus { display: grid; gap: 1.15rem; }
+.focus li { display: grid; gap: .3rem; padding-left: 1rem; border-left: 2px solid var(--line); transition: border-color .3s var(--ease); }
+.focus li:hover { border-left-color: var(--accent); }
+.focus-name { font-weight: 600; font-size: 1rem; }
+.focus-note { font-family: var(--font-mono); font-size: .78rem; line-height: 1.55; color: var(--faint); }
 
 /* ===================================================================
    EXPERIENCE
