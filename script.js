@@ -218,11 +218,20 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     };
 
-    const tick = () => { draw(); raf = requestAnimationFrame(tick); };
-    const start = () => { if (!running) { running = true; raf = requestAnimationFrame(tick); } };
+    const FRAME_MS = 1000 / 30;
+    let last = 0;
+    const tick = (now) => {
+      raf = requestAnimationFrame(tick);
+      if (now - last < FRAME_MS) return;
+      last = now;
+      draw();
+    };
+    const start = () => { if (!running) { running = true; last = 0; raf = requestAnimationFrame(tick); } };
     const stop = () => { running = false; cancelAnimationFrame(raf); };
 
     document.addEventListener('visibilitychange', () => { document.hidden ? stop() : start(); });
+    addEventListener('field:pause', stop);
+    addEventListener('field:resume', () => { if (!document.hidden) start(); });
     let rzt;
     addEventListener('resize', () => { clearTimeout(rzt); rzt = setTimeout(resize, 150); }, { passive: true });
     resize(); start();
@@ -235,17 +244,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const spot = document.getElementById('spotlight');
 
   if (!isTouch) {
-    let rx = pointer.x, ry = pointer.y, lx = NaN, ly = NaN, lsx = NaN, lsy = NaN;
+    let rx = pointer.x, ry = pointer.y;
+    addEventListener('pointermove', e => {
+      const tf = `translate3d(${e.clientX}px,${e.clientY}px,0) translate(-50%,-50%)`;
+      if (dot) dot.style.transform = tf;
+      if (spot) spot.style.transform = tf;
+    }, { passive: true });
     (function loop() {
-      rx += (pointer.x - rx) * 0.2; ry += (pointer.y - ry) * 0.2;
-      if (dot && (pointer.x !== lx || pointer.y !== ly)) {
-        dot.style.transform = `translate3d(${pointer.x}px,${pointer.y}px,0) translate(-50%,-50%)`;
-        lx = pointer.x; ly = pointer.y;
-      }
-      if (spot && (pointer.x !== lsx || pointer.y !== lsy)) {
-        spot.style.transform = `translate3d(${pointer.x}px,${pointer.y}px,0) translate(-50%,-50%)`;
-        lsx = pointer.x; lsy = pointer.y;
-      }
+      rx += (pointer.x - rx) * 0.28; ry += (pointer.y - ry) * 0.28;
       if (ring) ring.style.transform = `translate3d(${rx.toFixed(1)}px,${ry.toFixed(1)}px,0) translate(-50%,-50%)`;
       requestAnimationFrame(loop);
     })();
@@ -830,11 +836,13 @@ document.addEventListener('DOMContentLoaded', () => {
       modal.classList.add('open'); modal.setAttribute('aria-hidden', 'false');
       modal.querySelector('.modal-scroll').scrollTop = 0;
       lenis && lenis.stop();
+      dispatchEvent(new Event('field:pause'));
       setTimeout(() => closeBtn.focus(), 60);
     };
     const closeModal = () => {
       modal.classList.remove('open'); modal.setAttribute('aria-hidden', 'true');
       lenis && lenis.start();
+      dispatchEvent(new Event('field:resume'));
       lastFocus && lastFocus.focus && lastFocus.focus();
     };
     closeBtn.addEventListener('click', closeModal);
