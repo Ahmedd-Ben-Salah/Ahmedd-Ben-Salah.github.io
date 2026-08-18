@@ -13,6 +13,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (hasGSAP && window.ScrollTrigger) gsap.registerPlugin(ScrollTrigger);
 
+  const pointer = { x: innerWidth / 2, y: innerHeight / 2, active: false };
+  if (!isTouch) {
+    addEventListener('pointermove', e => {
+      pointer.x = e.clientX; pointer.y = e.clientY; pointer.active = true;
+    }, { passive: true });
+    document.addEventListener('pointerleave', () => { pointer.active = false; });
+    addEventListener('blur', () => { pointer.active = false; });
+  }
+
   /* ============ NEURAL SIGNAL NETWORK (canvas) ============
      Nodes (neurons / hosts) linked by proximity, with glowing pulses
      that fire and travel along the links — like signals propagating
@@ -21,27 +30,49 @@ document.addEventListener('DOMContentLoaded', () => {
     const canvas = document.getElementById('field');
     if (!canvas || reduce) return;
     const ctx = canvas.getContext('2d');
-    let w, h, dpr, nodes = [], signals = [], raf, t = 0;
-    const mouse = { x: -9999, y: -9999, active: false };
-    let LINK = 150;
+    let w, h, dpr, nodes = [], signals = [], raf = 0, t = 0, running = false;
+    let px = new Float64Array(0), py = new Float64Array(0);
+    let LINK = 150, LINK2 = LINK * LINK;
 
     const rand = (a, b) => a + Math.random() * (b - a);
 
+    const makeGlow = (r, g, b) => {
+      const c = document.createElement('canvas');
+      c.width = c.height = 64;
+      const x = c.getContext('2d');
+      const grad = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+      grad.addColorStop(0, `rgba(${r},${g},${b},1)`);
+      grad.addColorStop(0.22, `rgba(${r},${g},${b},0.5)`);
+      grad.addColorStop(1, `rgba(${r},${g},${b},0)`);
+      x.fillStyle = grad;
+      x.fillRect(0, 0, 64, 64);
+      return c;
+    };
+    const glowNode = makeGlow(200, 255, 54);
+    const glowSig = makeGlow(140, 235, 255);
+
+    const BUCKETS = 10;
+    const MAX_A = 0.66;
+
     const resize = () => {
-      dpr = Math.min(window.devicePixelRatio || 1, 2);
-      w = canvas.width = innerWidth * dpr;
-      h = canvas.height = innerHeight * dpr;
+      dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+      w = canvas.width = Math.round(innerWidth * dpr);
+      h = canvas.height = Math.round(innerHeight * dpr);
       canvas.style.width = innerWidth + 'px';
       canvas.style.height = innerHeight + 'px';
       LINK = (innerWidth < 600 ? 120 : 165) * dpr;
-      const count = Math.min(Math.floor((innerWidth * innerHeight) / 18000), isTouch ? 34 : 80);
+      LINK2 = LINK * LINK;
+      const count = Math.min(Math.floor((innerWidth * innerHeight) / 22000), isTouch ? 28 : 64);
       nodes = Array.from({ length: count }, () => ({
         x: Math.random() * w, y: Math.random() * h,
+        ox: 0, oy: 0,
         vx: rand(-0.18, 0.18) * dpr, vy: rand(-0.18, 0.18) * dpr,
         r: rand(0.8, 2.0) * dpr,
         glow: Math.random(),                 // idle pulsing phase
         excite: 0                            // 0..1 lit when a signal passes / near cursor
       }));
+      px = new Float64Array(count);
+      py = new Float64Array(count);
       signals = [];
     };
 
@@ -50,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
       for (let j = 0; j < nodes.length; j++) {
         if (j === i) continue;
         const dx = a.x - nodes[j].x, dy = a.y - nodes[j].y;
-        if (dx * dx + dy * dy < LINK * LINK) out.push(j);
+        if (dx * dx + dy * dy < LINK2) out.push(j);
       }
       return out;
     };
@@ -69,80 +100,92 @@ document.addEventListener('DOMContentLoaded', () => {
       t++;
       ctx.clearRect(0, 0, w, h);
 
-      // --- links ---
-      ctx.lineWidth = dpr * 0.7;
-      for (let i = 0; i < nodes.length; i++) {
+      const n = nodes.length;
+      const mx = pointer.x * dpr, my = pointer.y * dpr;
+      const R = 180 * dpr, R2 = R * R, LIM = 26 * dpr;
+
+      for (let i = 0; i < n; i++) {
         const p = nodes[i];
         p.x += p.vx; p.y += p.vy;
         if (p.x < 0 || p.x > w) p.vx *= -1;
         if (p.y < 0 || p.y > h) p.vy *= -1;
         if (p.excite > 0) p.excite -= 0.02;
 
-        // cursor excites + gently attracts nearby nodes
-        const mdx = mouse.x - p.x, mdy = mouse.y - p.y;
-        const md = Math.hypot(mdx, mdy);
-        if (mouse.active && md < 180 * dpr) {
-          p.excite = Math.max(p.excite, 1 - md / (180 * dpr));
-          p.x += (mdx / md) * 0.4; p.y += (mdy / md) * 0.4;
-        }
-
-        for (let j = i + 1; j < nodes.length; j++) {
-          const q = nodes[j];
-          const dx = p.x - q.x, dy = p.y - q.y;
-          const d = Math.hypot(dx, dy);
-          if (d < LINK) {
-            const base = 0.16 * (1 - d / LINK);
-            const lit = Math.max(p.excite, q.excite) * 0.5;
-            ctx.beginPath();
-            ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y);
-            ctx.strokeStyle = `rgba(170,210,90,${base + lit})`;
-            ctx.stroke();
+        p.ox *= 0.88; p.oy *= 0.88;
+        if (pointer.active) {
+          const dx = mx - p.x, dy = my - p.y, d2 = dx * dx + dy * dy;
+          if (d2 < R2) {
+            const d = Math.sqrt(d2) || 1;
+            const f = 1 - d / R;
+            if (f > p.excite) p.excite = f;
+            p.ox += (dx / d) * f * 1.6;
+            p.oy += (dy / d) * f * 1.6;
+            if (p.ox > LIM) p.ox = LIM; else if (p.ox < -LIM) p.ox = -LIM;
+            if (p.oy > LIM) p.oy = LIM; else if (p.oy < -LIM) p.oy = -LIM;
           }
         }
+        px[i] = p.x + p.ox; py[i] = p.y + p.oy;
+      }
+
+      // --- links ---
+      const paths = [];
+      for (let b = 0; b < BUCKETS; b++) paths.push(new Path2D());
+      for (let i = 0; i < n; i++) {
+        const ei = nodes[i].excite;
+        for (let j = i + 1; j < n; j++) {
+          const dx = px[i] - px[j], dy = py[i] - py[j], d2 = dx * dx + dy * dy;
+          if (d2 >= LINK2) continue;
+          const ej = nodes[j].excite;
+          const a = 0.16 * (1 - Math.sqrt(d2) / LINK) + (ei > ej ? ei : ej) * 0.5;
+          let b = (a / MAX_A * BUCKETS) | 0;
+          if (b < 0) b = 0; else if (b > BUCKETS - 1) b = BUCKETS - 1;
+          paths[b].moveTo(px[i], py[i]);
+          paths[b].lineTo(px[j], py[j]);
+        }
+      }
+      ctx.lineWidth = dpr * 0.7;
+      for (let b = 0; b < BUCKETS; b++) {
+        ctx.strokeStyle = `rgba(170,210,90,${((b + 0.5) / BUCKETS * MAX_A).toFixed(3)})`;
+        ctx.stroke(paths[b]);
       }
 
       // --- nodes ---
-      for (let i = 0; i < nodes.length; i++) {
+      ctx.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < n; i++) {
         const p = nodes[i];
         const pulse = 0.5 + 0.5 * Math.sin(t * 0.03 + p.glow * 6.28);
-        const r = p.r * (1 + p.excite * 1.8);
-        const a = 0.35 + 0.4 * pulse + p.excite * 0.5;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, r, 0, 6.2832);
-        ctx.fillStyle = `rgba(200,255,54,${Math.min(a, 1)})`;
-        ctx.shadowColor = 'rgba(200,255,54,0.9)';
-        ctx.shadowBlur = (4 + p.excite * 14) * dpr;
-        ctx.fill();
+        let a = 0.35 + 0.4 * pulse + p.excite * 0.5;
+        if (a > 1) a = 1;
+        const s = (p.r * (1 + p.excite * 1.8) + (4 + p.excite * 14) * dpr) * 2;
+        ctx.globalAlpha = a * 0.45;
+        ctx.drawImage(glowNode, px[i] - s / 2, py[i] - s / 2, s, s);
       }
-      ctx.shadowBlur = 0;
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = 'source-over';
+
+      ctx.fillStyle = 'rgba(214,255,120,0.92)';
+      ctx.beginPath();
+      for (let i = 0; i < n; i++) {
+        const r = nodes[i].r * (1 + nodes[i].excite * 1.2);
+        ctx.moveTo(px[i] + r, py[i]);
+        ctx.arc(px[i], py[i], r, 0, 6.2832);
+      }
+      ctx.fill();
 
       // --- traveling signals ---
+      const trail = new Path2D();
+      const heads = [];
       for (let s = signals.length - 1; s >= 0; s--) {
         const sig = signals[s];
-        const a = nodes[sig.from], b = nodes[sig.to];
-        if (!a || !b) { signals.splice(s, 1); continue; }
+        if (sig.from >= n || sig.to >= n) { signals.splice(s, 1); continue; }
         sig.t += sig.speed;
-        const x = a.x + (b.x - a.x) * sig.t;
-        const y = a.y + (b.y - a.y) * sig.t;
-
-        // trail
-        const tx = a.x + (b.x - a.x) * Math.max(0, sig.t - 0.12);
-        const ty = a.y + (b.y - a.y) * Math.max(0, sig.t - 0.12);
-        const grad = ctx.createLinearGradient(tx, ty, x, y);
-        grad.addColorStop(0, 'rgba(79,214,255,0)');
-        grad.addColorStop(1, 'rgba(120,235,255,0.9)');
-        ctx.strokeStyle = grad;
-        ctx.lineWidth = dpr * 2;
-        ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(x, y); ctx.stroke();
-
-        // head
-        ctx.beginPath();
-        ctx.arc(x, y, dpr * 2.4, 0, 6.2832);
-        ctx.fillStyle = 'rgba(190,245,255,0.95)';
-        ctx.shadowColor = 'rgba(79,214,255,0.95)';
-        ctx.shadowBlur = 12 * dpr;
-        ctx.fill();
-        ctx.shadowBlur = 0;
+        const ax = px[sig.from], ay = py[sig.from], bx = px[sig.to], by = py[sig.to];
+        const x = ax + (bx - ax) * sig.t;
+        const y = ay + (by - ay) * sig.t;
+        const back = Math.max(0, sig.t - 0.12);
+        trail.moveTo(ax + (bx - ax) * back, ay + (by - ay) * back);
+        trail.lineTo(x, y);
+        heads.push(x, y);
 
         if (sig.t >= 1) {
           nodes[sig.to].excite = 1;
@@ -150,26 +193,39 @@ document.addEventListener('DOMContentLoaded', () => {
           signals.splice(s, 1);
         }
       }
+      if (heads.length) {
+        ctx.lineWidth = dpr * 2;
+        ctx.strokeStyle = 'rgba(120,235,255,0.7)';
+        ctx.stroke(trail);
+        ctx.globalCompositeOperation = 'lighter';
+        const hs = 16 * dpr;
+        for (let i = 0; i < heads.length; i += 2) {
+          ctx.drawImage(glowSig, heads[i] - hs / 2, heads[i + 1] - hs / 2, hs, hs);
+        }
+        ctx.globalCompositeOperation = 'source-over';
+      }
 
       // spontaneous firing
-      if (t % 26 === 0 && nodes.length) fire((Math.random() * nodes.length) | 0, 0);
+      if (t % 26 === 0 && n) fire((Math.random() * n) | 0, 0);
       // fire from node nearest the cursor occasionally
-      if (mouse.active && t % 16 === 0 && nodes.length) {
+      if (pointer.active && t % 16 === 0 && n) {
         let best = -1, bd = Infinity;
-        for (let i = 0; i < nodes.length; i++) {
-          const dx = nodes[i].x - mouse.x, dy = nodes[i].y - mouse.y, d = dx * dx + dy * dy;
+        for (let i = 0; i < n; i++) {
+          const dx = nodes[i].x - mx, dy = nodes[i].y - my, d = dx * dx + dy * dy;
           if (d < bd) { bd = d; best = i; }
         }
         if (best >= 0 && bd < (220 * dpr) ** 2) fire(best, 0);
       }
-
-      raf = requestAnimationFrame(draw);
     };
 
-    addEventListener('mousemove', e => { mouse.x = e.clientX * dpr; mouse.y = e.clientY * dpr; mouse.active = true; });
-    addEventListener('mouseout', () => mouse.active = false);
-    addEventListener('resize', () => { cancelAnimationFrame(raf); resize(); draw(); });
-    resize(); draw();
+    const tick = () => { draw(); raf = requestAnimationFrame(tick); };
+    const start = () => { if (!running) { running = true; raf = requestAnimationFrame(tick); } };
+    const stop = () => { running = false; cancelAnimationFrame(raf); };
+
+    document.addEventListener('visibilitychange', () => { document.hidden ? stop() : start(); });
+    let rzt;
+    addEventListener('resize', () => { clearTimeout(rzt); rzt = setTimeout(resize, 150); }, { passive: true });
+    resize(); start();
   })();
 
   /* ============ CURSOR + SPOTLIGHT ============ */
@@ -179,15 +235,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const spot = document.getElementById('spotlight');
 
   if (!isTouch) {
-    let mx = innerWidth / 2, my = innerHeight / 2, rx = mx, ry = my;
-    addEventListener('mousemove', e => {
-      mx = e.clientX; my = e.clientY;
-      if (dot) { dot.style.left = mx + 'px'; dot.style.top = my + 'px'; }
-      if (spot) { spot.style.setProperty('--mx', mx + 'px'); spot.style.setProperty('--my', my + 'px'); }
-    });
+    let rx = pointer.x, ry = pointer.y, lx = NaN, ly = NaN, lsx = NaN, lsy = NaN;
     (function loop() {
-      rx += (mx - rx) * 0.2; ry += (my - ry) * 0.2;
-      if (ring) { ring.style.left = rx + 'px'; ring.style.top = ry + 'px'; }
+      rx += (pointer.x - rx) * 0.2; ry += (pointer.y - ry) * 0.2;
+      if (dot && (pointer.x !== lx || pointer.y !== ly)) {
+        dot.style.transform = `translate3d(${pointer.x}px,${pointer.y}px,0) translate(-50%,-50%)`;
+        lx = pointer.x; ly = pointer.y;
+      }
+      if (spot && (pointer.x !== lsx || pointer.y !== lsy)) {
+        spot.style.transform = `translate3d(${pointer.x}px,${pointer.y}px,0) translate(-50%,-50%)`;
+        lsx = pointer.x; lsy = pointer.y;
+      }
+      if (ring) ring.style.transform = `translate3d(${rx.toFixed(1)}px,${ry.toFixed(1)}px,0) translate(-50%,-50%)`;
       requestAnimationFrame(loop);
     })();
     document.querySelectorAll('[data-cursor], a, button').forEach(el => {
@@ -203,26 +262,35 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ============ MAGNETIC BUTTONS ============ */
   if (!isTouch && hasGSAP) {
     document.querySelectorAll('[data-magnetic]').forEach(el => {
+      const qx = gsap.quickTo(el, 'x', { duration: 0.5, ease: 'power3.out' });
+      const qy = gsap.quickTo(el, 'y', { duration: 0.5, ease: 'power3.out' });
+      let r = null;
+      el.addEventListener('mouseenter', () => { r = el.getBoundingClientRect(); });
       el.addEventListener('mousemove', e => {
-        const r = el.getBoundingClientRect();
-        const x = e.clientX - r.left - r.width / 2;
-        const y = e.clientY - r.top - r.height / 2;
-        gsap.to(el, { x: x * 0.35, y: y * 0.45, duration: 0.5, ease: 'power3.out' });
+        if (!r) r = el.getBoundingClientRect();
+        qx((e.clientX - r.left - r.width / 2) * 0.35);
+        qy((e.clientY - r.top - r.height / 2) * 0.45);
+      }, { passive: true });
+      el.addEventListener('mouseleave', () => {
+        r = null;
+        gsap.to(el, { x: 0, y: 0, duration: 0.6, ease: 'elastic.out(1,0.4)' });
       });
-      el.addEventListener('mouseleave', () => gsap.to(el, { x: 0, y: 0, duration: 0.6, ease: 'elastic.out(1,0.4)' }));
     });
   }
 
   /* ============ HEADER + SCROLL BAR ============ */
   const header = document.getElementById('header');
   const sbar = document.getElementById('sbar');
+  let scrollMax = 1;
+  const measureScroll = () => { scrollMax = document.documentElement.scrollHeight - innerHeight; };
+  measureScroll();
+  addEventListener('resize', measureScroll, { passive: true });
+  let scrolled = null;
   const onScroll = () => {
     const y = window.scrollY || window.pageYOffset;
-    header && header.classList.toggle('scrolled', y > 30);
-    if (sbar) {
-      const max = document.documentElement.scrollHeight - innerHeight;
-      sbar.style.width = (max > 0 ? (y / max) * 100 : 0) + '%';
-    }
+    const isS = y > 30;
+    if (header && isS !== scrolled) { header.classList.toggle('scrolled', isS); scrolled = isS; }
+    if (sbar) sbar.style.transform = 'scaleX(' + (scrollMax > 0 ? Math.min(y / scrollMax, 1) : 0) + ')';
   };
 
   /* ============ MOBILE NAV ============ */
@@ -394,6 +462,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     buildGallery();
+    ScrollTrigger.addEventListener('refresh', measureScroll);
     requestAnimationFrame(() => ScrollTrigger.refresh());
   }
 
@@ -410,11 +479,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // panel cursor glow
     if (!isTouch) {
       track.querySelectorAll('.panel').forEach(p => {
+        let r = null, cx = 0, cy = 0, queued = false;
+        const flush = () => {
+          queued = false;
+          p.style.setProperty('--cx', cx + 'px');
+          p.style.setProperty('--cy', cy + 'px');
+        };
+        p.addEventListener('mouseenter', () => { r = p.getBoundingClientRect(); });
+        p.addEventListener('mouseleave', () => { r = null; });
         p.addEventListener('mousemove', e => {
-          const r = p.getBoundingClientRect();
-          p.style.setProperty('--cx', (e.clientX - r.left) + 'px');
-          p.style.setProperty('--cy', (e.clientY - r.top) + 'px');
-        });
+          if (!r) r = p.getBoundingClientRect();
+          cx = e.clientX - r.left; cy = e.clientY - r.top;
+          if (!queued) { queued = true; requestAnimationFrame(flush); }
+        }, { passive: true });
       });
     }
 

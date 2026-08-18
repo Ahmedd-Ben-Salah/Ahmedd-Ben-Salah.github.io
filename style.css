@@ -59,14 +59,13 @@ ul { list-style: none; }
 ::selection { background: var(--accent); color: #000; }
 
 /* prevent flash before GSAP: hide animated bits only when JS is on */
-.js [data-anim], .js [data-split] > .ln > span, .js .reveal { will-change: transform, opacity; }
 .js [data-anim] { opacity: 0; }
 
 /* ---------- Atmosphere ---------- */
 #field { position: fixed; inset: 0; z-index: -2; pointer-events: none; }
 
 /* drifting aurora blobs */
-.aurora { position: fixed; inset: -20% ; z-index: -5; pointer-events: none; overflow: hidden; filter: blur(64px); opacity: .5; }
+.aurora { position: fixed; inset: -20% ; z-index: -5; pointer-events: none; overflow: hidden; opacity: .55; contain: layout paint style; }
 .aurora span { position: absolute; border-radius: 50%; mix-blend-mode: screen; will-change: transform; }
 .aurora .a1 { width: 46vw; height: 46vw; left: -8%; top: -6%;  background: radial-gradient(circle, rgba(200,255,54,.30), transparent 65%); animation: drift1 26s ease-in-out infinite; }
 .aurora .a2 { width: 50vw; height: 50vw; right: -10%; top: 8%;  background: radial-gradient(circle, rgba(79,214,255,.26), transparent 65%); animation: drift2 32s ease-in-out infinite; }
@@ -94,8 +93,9 @@ ul { list-style: none; }
     radial-gradient(900px circle at 88% 0%, var(--glow), transparent 50%);
 }
 .spotlight {
-  position: fixed; inset: 0; z-index: -1; pointer-events: none;
-  background: radial-gradient(460px circle at var(--mx,50%) var(--my,50%), rgba(200,255,54,0.07), transparent 70%);
+  position: fixed; top: 0; left: 0; width: 920px; height: 920px; z-index: -1; pointer-events: none;
+  transform: translate3d(50vw, 50vh, 0) translate(-50%, -50%); will-change: transform;
+  background: radial-gradient(circle closest-side, rgba(200,255,54,0.07), transparent 70%);
 }
 .noise {
   position: fixed; inset: 0; z-index: 9990; pointer-events: none; opacity: .045; mix-blend-mode: overlay;
@@ -103,19 +103,21 @@ ul { list-style: none; }
 }
 
 /* ---------- Cursor ---------- */
-.cur-dot,.cur-ring { position: fixed; top: 0; left: 0; z-index: 10000; pointer-events: none; border-radius: 50%; mix-blend-mode: difference; }
+.cur-dot,.cur-ring { position: fixed; top: 0; left: 0; z-index: 10000; pointer-events: none; border-radius: 50%; will-change: transform; }
 .cur-dot { width: 7px; height: 7px; background: #fff; transform: translate(-50%,-50%); }
-.cur-ring { width: 38px; height: 38px; border: 1px solid #fff; transform: translate(-50%,-50%);
-  display: grid; place-items: center;
-  transition: width .3s var(--ease), height .3s var(--ease), opacity .3s, background .3s; }
-.cur-ring.hov { width: 64px; height: 64px; background: rgba(255,255,255,.15); }
-.cur-ring.lbl { width: 76px; height: 76px; background: var(--accent); border-color: var(--accent); mix-blend-mode: normal; }
-.cur-ring .ct { font-family: var(--font-mono); font-size: .6rem; color: #000; opacity: 0; letter-spacing: .05em; }
+.cur-ring { width: 38px; height: 38px; transform: translate(-50%,-50%);
+  display: grid; place-items: center; }
+.cur-ring::before { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 1px solid #fff;
+  transition: transform .3s var(--ease), background .3s var(--ease), border-color .3s; }
+.cur-ring.hov::before { transform: scale(1.68); background: rgba(255,255,255,.15); }
+.cur-ring.lbl::before { transform: scale(2); background: var(--accent); border-color: var(--accent); }
+.cur-ring .ct { position: relative; font-family: var(--font-mono); font-size: .6rem; color: #000; opacity: 0; letter-spacing: .05em; }
 .cur-ring.lbl .ct { opacity: 1; }
 @media (max-width: 900px) { .cur-dot,.cur-ring { display: none; } }
 
 /* ---------- Scroll progress ---------- */
-.sbar { position: fixed; top: 0; left: 0; height: 2px; width: 0; z-index: 9999;
+.sbar { position: fixed; top: 0; left: 0; height: 2px; width: 100%; z-index: 9999;
+  transform: scaleX(0); transform-origin: 0 50%; will-change: transform;
   background: linear-gradient(90deg, var(--accent-2), var(--accent)); box-shadow: 0 0 14px var(--accent); }
 
 /* ---------- Preloader ---------- */
