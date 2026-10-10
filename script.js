@@ -751,7 +751,7 @@ document.addEventListener('DOMContentLoaded', () => {
         links: [{ label: 'View on GitHub', href: GH + '/Nxp-Cup-2026', primary: true }]
       },
       {
-        id: 'micromouse', repo: 'micromouse', kicker: 'Robotics · Embedded', title: 'Micromouse Maze Solver',
+        id: 'micromouse', repo: 'micromouse-2026', kicker: 'Robotics · Embedded', title: 'Micromouse Maze Solver',
         desc: 'Autonomous maze-solving robot that took 3rd place at the first Micromouse competition in Tunisia. ESP32 firmware with flood-fill mapping, cascade gyro wall-following on three time-of-flight sensors, and on-robot tuning through an OLED menu.',
         cardTags: ['C++', 'ESP32', 'Flood Fill'],
         meta: 'CAD & Software Lead · IEEE Micromouse, NRW 8.0 · 3rd / 7 teams',
@@ -765,7 +765,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ],
         impact: ['<b>3rd place out of 7 teams</b> at IEEE Micromouse, National Robotics Week 8.0.', 'In simulation, the cascade controller cut worst lateral drift from <b>6.4 mm to 0.5 mm</b> at 250 mm/s, and single-wall crashes at 400 mm/s from <b>36 to 0</b>.'],
         tags: ['C++', 'ESP32', 'Flood Fill', 'PID Control', 'Sensor Fusion', 'CAD', 'Embedded'],
-        links: [{ label: 'View on GitHub', href: GH + '/micromouse', primary: true }]
+        links: [{ label: 'View on GitHub', href: GH + '/micromouse-2026', primary: true }]
       },
       {
         id: 'extensions', repo: 'Extensions-Page', kicker: 'Frontend · UI', title: 'Extensions Manager UI',
