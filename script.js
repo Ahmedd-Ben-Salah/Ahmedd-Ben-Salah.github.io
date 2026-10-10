@@ -751,6 +751,23 @@ document.addEventListener('DOMContentLoaded', () => {
         links: [{ label: 'View on GitHub', href: GH + '/Nxp-Cup-2026', primary: true }]
       },
       {
+        id: 'micromouse', repo: 'micromouse', kicker: 'Robotics · Embedded', title: 'Micromouse Maze Solver',
+        desc: 'Autonomous maze-solving robot that took 3rd place at the first Micromouse competition in Tunisia. ESP32 firmware with flood-fill mapping, cascade gyro wall-following on three time-of-flight sensors, and on-robot tuning through an OLED menu.',
+        cardTags: ['C++', 'ESP32', 'Flood Fill'],
+        meta: 'CAD & Software Lead · IEEE Micromouse, NRW 8.0 · 3rd / 7 teams',
+        metrics: [{ v: '3rd / 7', k: 'Competition ranking' }, { v: '6.4 → 0.5 mm', k: 'Worst lateral drift' }, { v: '0 crashes', k: 'Simulated, was 36' }],
+        problem: 'Explore and solve an unknown 16×16 maze within 10 minutes, with no reflashing after the maze is revealed and a 30-second penalty every time a human has to rescue the robot.',
+        approach: [
+          'Built the robot and wrote all of its firmware: an <b>ESP32</b> driving N20 encoder motors, three <b>VL53L0X</b> time-of-flight sensors ranging round-robin, and an LSM6DS3 gyro.',
+          'Replaced a wall follower that fought itself with a <b>cascade controller</b>: lateral error sets a target heading, and a fast gyro loop holds it. A shared lateral estimator is carried forward by odometry between sensor readings.',
+          '<b>Flood-fill</b> planning that is optimistic while exploring and uses only known walls on the speed run, with stuck recovery that forgets a growing radius of suspect walls instead of wiping the map.',
+          'Every maze-dependent constant is editable from an <b>OLED menu</b> and saved to flash, because the rules forbid reflashing on site.'
+        ],
+        impact: ['<b>3rd place out of 7 teams</b> at IEEE Micromouse, National Robotics Week 8.0.', 'In simulation, the cascade controller cut worst lateral drift from <b>6.4 mm to 0.5 mm</b> at 250 mm/s, and single-wall crashes at 400 mm/s from <b>36 to 0</b>.'],
+        tags: ['C++', 'ESP32', 'Flood Fill', 'PID Control', 'Sensor Fusion', 'CAD', 'Embedded'],
+        links: [{ label: 'View on GitHub', href: GH + '/micromouse', primary: true }]
+      },
+      {
         id: 'extensions', repo: 'Extensions-Page', kicker: 'Frontend · UI', title: 'Extensions Manager UI',
         desc: 'A clean, modern browser-extension management panel replicating real browser UX, with light/dark theming and intuitive toggle controls.',
         cardTags: ['HTML', 'CSS', 'JavaScript'],
