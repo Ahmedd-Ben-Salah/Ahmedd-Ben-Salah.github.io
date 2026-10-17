@@ -667,6 +667,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const PROJECTS = [
       {
+        id: 'fgsm', repo: 'fgsm-mnist', kicker: 'AI Security · Adversarial ML', title: 'Breaking a Neural Network with Invisible Noise',
+        desc: 'An implementation of the Fast Gradient Sign Method, built from the Goodfellow paper. It drops a 97.5%-accurate image classifier to 6.5% using a perturbation you cannot see, and measures exactly where the model breaks.',
+        cardTags: ['Python', 'TensorFlow', 'Adversarial ML'],
+        meta: 'Solo project · From the ICLR 2015 paper',
+        metrics: [{ v: '97.5% → 6.5%', k: 'Accuracy at \u03b5 = 0.1' }, { v: '1.5%', k: 'At \u03b5 = 0.15, below guessing' }, { v: 'Invisible', k: 'Perturbation to the eye' }],
+        problem: 'A classifier that is right 97.5% of the time feels reliable. How large does a perturbation have to be before it stops being reliable, and can a human see that perturbation at all?',
+        approach: [
+          'Implemented <b>FGSM</b> from Goodfellow, Shlens and Szegedy (ICLR 2015), differentiating the loss with respect to the <b>input image</b> rather than the weights.',
+          'Used <b>tf.GradientTape</b> with an explicit watch on the image tensor, since the input is a constant and is not tracked by default.',
+          'Swept the perturbation size across nine values and measured accuracy at each, then plotted the full <b>accuracy-versus-epsilon curve</b>.',
+          'Shipped it as a reproducible repository with the attack isolated in its own module and a <b>test suite</b> covering the attack invariants.'
+        ],
+        impact: ['Accuracy collapses from <b>97.5% to 6.5%</b> at \u03b5 = 0.1, and to <b>1.5%</b> at \u03b5 = 0.15 — well below the 10% of random guessing, so the attack steers the model rather than merely confusing it.', 'Most of the failure happens between \u03b5 = 0.02 and \u03b5 = 0.1, a band where the images still look completely normal.'],
+        tags: ['Python', 'TensorFlow', 'Keras', 'Adversarial ML', 'AI Security', 'NumPy', 'pytest'],
+        links: [{ label: 'View on GitHub', href: GH + '/fgsm-mnist', primary: true }]
+      },
+      {
         id: 'ciscolabai', repo: 'CiscoLabAI', kicker: 'NetDevOps · LLM Automation', title: 'CiscoLabAI',
         desc: 'An AI-powered NetDevOps workflow that cut Cisco Packet Tracer lab configuration from 70 minutes of manual CLI work to under 3 — a 95% reduction. Automates full dual-stack (IPv4 + IPv6) addressing, device hardening, and routing via LLM-driven intent parsing.',
         cardTags: ['Python', 'LLM Integration', 'Packet Tracer'],
